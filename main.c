@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #define MAXNAME 20
+#define MAXLINE 100
 
 typedef struct Variables
 {
@@ -19,3 +21,39 @@ typedef struct VariableNodes
                     // the left has names that come earlier
                     // on the dictionary
 } VarNode;
+
+VarNode root; // Root of the variable tree
+
+void readLines(char fileName[], char progName[])
+{
+    FILE *fp;
+
+    if ((fopen(fileName, "r")) == NULL)
+    {
+        fprintf(stderr, "%s: cannot open %s", progName, fileName);
+        exit(2);
+    }
+
+    char line[MAXLINE];
+
+    // Get each line one by one
+    while (fgets(line, MAXLINE, fp) != NULL)
+    {
+        processLine(line);
+    }
+}
+
+void processLine(char line[])
+{
+    // Find the first '#' if any, and cut off this comment
+    for (int i = 0; line[i] != '\0'; i++)
+    {
+        if (line[i] == '#')
+        {
+            line[i] = '\0';
+            return;
+        }
+    }
+
+    
+}
