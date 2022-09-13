@@ -16,3 +16,18 @@ store all the variables. When I need to access a variable's
 info, I will do it in on average O(log(n)) time complexity. 
 Also I should create a struct for variables.
 
+2. Statements
+There are 5 types of statements:
+1- Variable declarations
+2- Variable assignment
+3- Print calls
+4- Choose call
+5- Print loop
+Each of these statements consists of multiple expressions. We 
+should keep a record of this expressions, their relation to 
+statements, and the order of the statements. Either we should 
+create a linked list to keep a record of these, or we can 
+instantly write them to the outfile. If we use a linked list 
+to keep the record, we can use that structure in a compiler 
+project, but it may be too space consuming for this project.
+
