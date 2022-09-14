@@ -4,19 +4,66 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FALSE 0
+#define MAXEXPR 100
 #define MAXNAME 20
-#define MAXLINE 100
+#define MAXLINE MAXEXPR
 #define NULLCHAR '\0'
+#define TRUE 1
 #define WORDLEN 50 // Maximum word length, including blocks
 
 typedef struct Variables
 {
-    char type[7];           // Type of the variable, either scalar
-                            // or matrix. Vector is countes as matrix
+    enum
+    {
+        SCA,
+        VEC,
+        MAT
+    } type;                 // Type of the variable
     char name[MAXNAME + 1]; // Name of the variable
     int fir_dim;            // First dimension
     int sec_dim;            // Second dimension
 } Variable;
+
+typedef struct Prints
+{
+    enum
+    {
+        PRI,
+        SEP
+    } type;                 // Print() or printsep()
+    char name[MAXNAME + 1]; // Name of the variable
+} Print;
+
+typedef struct TrSqs
+{
+    enum
+    {
+        TR,
+        SQRT
+    } type;
+    char expr[MAXEXPR + 1]; // Argument expression
+} TrSq;
+
+typedef struct Chooses
+{
+    char expr1[MAXEXPR + 1]; // Test argument
+    char expr2[MAXEXPR + 1]; // Returns expr2 if expr1 == 0
+    char expr3[MAXEXPR + 1]; // Returns expr3 if expr1 > 0
+    char expr4[MAXEXPR + 1]; // Returns expr4 if expr1 < 0
+
+} Choose;
+
+typedef struct Forls
+{
+    LineBlock *lines; // Lines in the for loop
+} Forl;
+
+typedef struct Assigns
+{
+    char leftSide[MAXEXPR + 1];
+    char rightSide[MAXEXPR + 1];
+} Assign;
 
 typedef struct VariableNodes
 {
@@ -27,7 +74,34 @@ typedef struct VariableNodes
                                  // on the dictionary
 } VarNode;
 
-VarNode root;   // Root of the variable tree
+typedef struct LineBlocks
+{
+    enum
+    {
+        SCA,  // 0: Scalar definition
+        VEC,  // 1: Vector definition
+        MAT,  // 2: Matrix definition
+        TR,   // 3: Tr function call
+        SQRT, // 4: Sqrt function call
+        CHS,  // 5: Choose function call
+        FORL, // 6: For loop
+        PRI,  // 7: Print function call
+        SEP,  // 8: Printsep function call
+        ASN   // 9: Assignment
+    } type;
+
+    union
+    {
+        Variable *var;     // If scalar, vector, or matrix definition
+        Print *printArg;   // For print()
+        TrSq *trsqArg;     // For tr() and sq()
+        Choose *chooseArg; // For choose()
+        Forl *forlArg;     // For for()
+        Assign *assignArg; // For assignments '='
+    } statement;
+} LineBlock;
+
+VarNode *root;  // Root of the variable tree
 int lineNo = 0; // Current number of line that is being read
 
 int main(int argc, char const *argv[])
@@ -47,6 +121,9 @@ void readLines(const char fileName[], const char progName[])
 
     FILE *fp;
 
+    // Allocate storage to root
+    root = (VarNode *)malloc(sizeof(VarNode));
+
     if ((fp = fopen(fileName, "r")) == NULL)
     {
         fprintf(stderr, "%s: cannot open %s", progName, fileName);
@@ -55,14 +132,54 @@ void readLines(const char fileName[], const char progName[])
     printf("line 53\n");
     char word[WORDLEN];
 
+    int prevLine = 0;
+
     // Get each line one by one
     while (getWord(fp, word, WORDLEN) != NULL)
     {
-        // lineNo++;
-        // printf("line 60\n");
-        // processLine(fp, line);
-        printf("%s\n", word);
-        // printf("line 62\n");
+        if (strcmp(word, "scalar") == 0)
+        {
+            // Scalar definition
+            scalDef(fp);
+        }
+        else if (strcmp(word, "vector") == 0)
+        {
+            // Vector definition
+        }
+        else if (strcmp(word, "matrix") == 0)
+        {
+            // Matrix definition
+        }
+        else if (strcmp(word, "print") == 0)
+        {
+            // Print statement
+        }
+        else if (strcmp(word, "printsep") == 0)
+        {
+            // Printsep statement
+        }
+        else if (strcmp(word, "for") == 0)
+        {
+            // Forl statement
+        }
+        else if (strcmp(word, "choose") == 0)
+        {
+            // Choose statement
+        }
+        else if (strcmp(word, "sqrt") == 0)
+        {
+            // Sqrt statement
+        }
+        else if (strcmp(word, "tr") == 0)
+        {
+            // Tr statement
+        }
+        else
+        {
+            // Possible assignment statement, must check for '='
+        }
+
+        printf("%s\t", word);
     }
     fclose(fp);
 }
@@ -89,6 +206,66 @@ void processLine(const FILE *fp, char line[])
     }
 }
 */
+/*
+Checks whether the current line is a scalar definition. Returns 0 if so.
+Else returns a positive integer denoting the error type
+*/
+int scalDef(const FILE *fp)
+{
+    char *getWord(const FILE *fp, char *word, int lim);
+    int addTree(VarNode * root, Variable * var);
+
+    char name[MAXNAME + 1];
+    char word[MAXEXPR + 1];
+
+    if (getWord(fp, word, MAXNAME) == NULL || strcmp(name, "\n") == 0)
+    {
+        return 1; // Error: no variable name specified
+    }
+    strcpy(name, word);
+
+    if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
+    {
+        return 2; // Error: too many arguments for variable declaration
+    }
+
+    // Allocate storage for the variable
+    Variable *varPtr = (Variable *)malloc(sizeof(Variable));
+
+    // Put the type and name
+    varPtr->type = SCA;
+    strcpy(varPtr->name, name);
+
+    // Add the node to the tree
+    return addTree(root, varPtr);
+}
+
+int addTree(VarNode *root, Variable *var)
+{
+    if (!root)
+    {
+        root = (VarNode *)malloc(sizeof(VarNode));
+        root->var = var;
+        return 0; // Successfully added
+    }
+
+    if (strcmp(var->name, root->var->name) > 0) // Go to right child
+    {
+        return addTree(root->right, var);
+    }
+    else if (strcmp(var->name, root->var->name) < 0) // Go to left
+    {
+        return addTree(root->left, var);
+    }
+    else // If they are equal
+    {
+        return 3; // Error: a variable with same id is already declared
+    }
+}
+
+/*
+Get the next word from the stream. If EOF is encountered, return NULL
+*/
 char *getWord(const FILE *fp, char *word, int lim)
 {
     int c;
@@ -100,10 +277,26 @@ char *getWord(const FILE *fp, char *word, int lim)
                    // 2 for Bracket [] block
                    // 3 for Curly bracket {} block
 
-    while (isspace(c = getch(fp)))
-        ;
+    while (TRUE)
+    {
+        c = getch(fp);
 
-    if (c != EOF )
+        // We should keep record of the current line number.
+        // Accept new line as a word of its own
+        if (c == '\n')
+        {
+            lineNo++;
+            *w++ = c;
+            *w = '\0';
+            return word;
+        }
+        if (!isspace(c))
+        {
+            break;
+        }
+    }
+
+    if (c != EOF)
     {
         *w++ = c;
         if (c == '(')
@@ -118,7 +311,28 @@ char *getWord(const FILE *fp, char *word, int lim)
         {
             block = 3;
         }
-    }else{
+        else if (c == '#') // If it is a comment line, skip it and get a new word
+        {
+            while (TRUE)
+            {
+                c = getch(fp);
+                if (c == '\n')
+                {
+                    lineNo++;
+                    *--w = c;
+                    *++w = '\0';
+                    return word;
+                }
+                else if (c == 'EOF')
+                {
+                    return NULL;
+                }
+            }
+            // return getWord(fp, word, lim);
+        }
+    }
+    else // If c == EOF
+    {
         return NULL;
     }
 
@@ -131,7 +345,8 @@ char *getWord(const FILE *fp, char *word, int lim)
             // If you have come to a new word, unget the last char and end the
             // word
             if (isspace(c) || c == '[' || c == '(' || c == '{' ||
-                c == '=' || c == '+' || c == '-' || c == '*' || c == EOF)
+                c == '=' || c == '+' || c == '-' || c == '*' || c == EOF ||
+                c == '#')
             {
                 ungetch(c);
                 *w = NULLCHAR;
