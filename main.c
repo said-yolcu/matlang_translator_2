@@ -1,116 +1,31 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define FALSE 0
-#define MAXEXPR 100
-#define MAXNAME 20
-#define MAXLINE MAXEXPR
-#define NULLCHAR '\0'
-#define TRUE 1
-#define WORDLEN 50 // Maximum word length, including blocks
+#include "definitions.h"
 
-typedef struct Variables
-{
-    enum
-    {
-        SCA,
-        VEC,
-        MAT
-    } type;                 // Type of the variable
-    char name[MAXNAME + 1]; // Name of the variable
-    int fir_dim;            // First dimension
-    int sec_dim;            // Second dimension
-} Variable;
+VarNode *theRoot; // Root of the variable tree
+int lineNo = 0;   // Current number of line that is being read
 
-typedef struct Prints
-{
-    enum
-    {
-        PRI,
-        SEP
-    } type;                 // Print() or printsep()
-    char name[MAXNAME + 1]; // Name of the variable
-} Print;
-
-typedef struct TrSqs
-{
-    enum
-    {
-        TR,
-        SQRT
-    } type;
-    char expr[MAXEXPR + 1]; // Argument expression
-} TrSq;
-
-typedef struct Chooses
-{
-    char expr1[MAXEXPR + 1]; // Test argument
-    char expr2[MAXEXPR + 1]; // Returns expr2 if expr1 == 0
-    char expr3[MAXEXPR + 1]; // Returns expr3 if expr1 > 0
-    char expr4[MAXEXPR + 1]; // Returns expr4 if expr1 < 0
-
-} Choose;
-
-typedef struct Forls
-{
-    LineBlock *lines; // Lines in the for loop
-} Forl;
-
-typedef struct Assigns
-{
-    char leftSide[MAXEXPR + 1];
-    char rightSide[MAXEXPR + 1];
-} Assign;
-
-typedef struct VariableNodes
-{
-    Variable *var;               // Variable of this node
-    struct VariableNodes *left;  // VarNode on the left
-    struct VariableNodes *right; // VarNode on the right. Variables on
-                                 // the left has names that come earlier
-                                 // on the dictionary
-} VarNode;
-
-typedef struct LineBlocks
-{
-    enum
-    {
-        SCA,  // 0: Scalar definition
-        VEC,  // 1: Vector definition
-        MAT,  // 2: Matrix definition
-        TR,   // 3: Tr function call
-        SQRT, // 4: Sqrt function call
-        CHS,  // 5: Choose function call
-        FORL, // 6: For loop
-        PRI,  // 7: Print function call
-        SEP,  // 8: Printsep function call
-        ASN   // 9: Assignment
-    } type;
-
-    union
-    {
-        Variable *var;     // If scalar, vector, or matrix definition
-        Print *printArg;   // For print()
-        TrSq *trsqArg;     // For tr() and sq()
-        Choose *chooseArg; // For choose()
-        Forl *forlArg;     // For for()
-        Assign *assignArg; // For assignments '='
-    } statement;
-} LineBlock;
-
-VarNode *root;  // Root of the variable tree
-int lineNo = 0; // Current number of line that is being read
+void raiseError(int code, ...); // RaiseError() is used in a lot of functions
+                                // so we should declare it here rather than in
+                                // each function
 
 int main(int argc, char const *argv[])
 {
     void readLines(const char *, const char *);
+    void printTree(VarNode *);
+
+    theRoot = NULL;
 
     char fileName[] = "/home/said/school/spring_semester_2022/cmpe_230/homeworks/hw_1/ex1.txt";
 
     readLines(fileName, argv[0]);
+    printTree(theRoot);
+    // printf("%s\n", theRoot->var->name);
     return 0;
 }
 
@@ -118,18 +33,20 @@ void readLines(const char fileName[], const char progName[])
 {
     // void processLine(const FILE *, char *);
     char *getWord(const FILE *, char *, int);
+    void scalDef(const FILE *);
+    void vectDef(const FILE *);
 
     FILE *fp;
 
-    // Allocate storage to root
-    root = (VarNode *)malloc(sizeof(VarNode));
+    // DO NOT Allocate storage to root
+    // root = (VarNode *)malloc(sizeof(VarNode));
 
     if ((fp = fopen(fileName, "r")) == NULL)
     {
         fprintf(stderr, "%s: cannot open %s", progName, fileName);
         exit(2);
     }
-    printf("line 53\n");
+    // printf("line 135\n");
     char word[WORDLEN];
 
     int prevLine = 0;
@@ -140,15 +57,19 @@ void readLines(const char fileName[], const char progName[])
         if (strcmp(word, "scalar") == 0)
         {
             // Scalar definition
+            // printf("A scalar\n");
             scalDef(fp);
         }
         else if (strcmp(word, "vector") == 0)
         {
             // Vector definition
+            // printf("A vector\n");
+            vectDef(fp);
         }
         else if (strcmp(word, "matrix") == 0)
         {
             // Matrix definition
+            matrDef(fp);
         }
         else if (strcmp(word, "print") == 0)
         {
@@ -179,7 +100,7 @@ void readLines(const char fileName[], const char progName[])
             // Possible assignment statement, must check for '='
         }
 
-        printf("%s\t", word);
+        // printf("%s\t", word);
     }
     fclose(fp);
 }
@@ -210,56 +131,296 @@ void processLine(const FILE *fp, char line[])
 Checks whether the current line is a scalar definition. Returns 0 if so.
 Else returns a positive integer denoting the error type
 */
-int scalDef(const FILE *fp)
+void scalDef(const FILE *fp)
 {
     char *getWord(const FILE *fp, char *word, int lim);
-    int addTree(VarNode * root, Variable * var);
+    VarNode *addTree(VarNode *, Variable *);
 
     char name[MAXNAME + 1];
     char word[MAXEXPR + 1];
 
+    printf("line 224\n");
+
     if (getWord(fp, word, MAXNAME) == NULL || strcmp(name, "\n") == 0)
     {
-        return 1; // Error: no variable name specified
+        raiseError(1); // Error: no variable name specified
     }
     strcpy(name, word);
 
+    printf("line 232\n");
+
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
-        return 2; // Error: too many arguments for variable declaration
+        raiseError(2); // Error: too many arguments for variable declaration
+    }
+
+    printf("line 239\n");
+
+    // Allocate storage for the variable
+    Variable *varPtr = (Variable *)malloc(sizeof(Variable));
+
+    // printf("line 244\n");
+
+    // Put the type and name
+    varPtr->type = VARSCA;
+    // printf("line 248\n");
+    strcpy(varPtr->name, name);
+
+    // printf("line 251\n");
+
+    // Add the node to the tree
+    theRoot = addTree(theRoot, varPtr);
+}
+
+void vectDef(const FILE *fp)
+{
+
+    char *getWord(const FILE *fp, char *word, int lim);
+    VarNode *addTree(VarNode *, Variable *);
+    int getInt(char *, int, int);
+
+    char name[MAXNAME + 1];
+    char word[MAXEXPR + 1];
+    char dimStr[MAXEXPR + 1];
+    int dim;
+
+    if (getWord(fp, word, MAXNAME) == NULL || strcmp(name, "\n") == 0)
+    {
+        raiseError(1); // Error: no variable name specified
+    }
+    strcpy(name, word);
+
+    if (getWord(fp, word, MAXEXPR) == NULL || strcmp(word, "\n") == 0)
+    {
+        printf("line 286\n");
+        raiseError(4); // Error: no dimension specified, too few arguments
+    }
+    printf("line 288\n");
+
+    // Get the dimension
+    dim = getInt(word, 1, strlen(word) - 2);
+    printf("line 292\n");
+
+    if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
+    {
+        raiseError(2); // Error: too many arguments for variable declaration
     }
 
     // Allocate storage for the variable
     Variable *varPtr = (Variable *)malloc(sizeof(Variable));
 
     // Put the type and name
-    varPtr->type = SCA;
+    varPtr->type = VARVEC;
     strcpy(varPtr->name, name);
+    varPtr->fir_dim = dim;
+    // Allocate memory for the array
+    varPtr->arr = (int *)malloc(dim * sizeof(int));
 
     // Add the node to the tree
-    return addTree(root, varPtr);
+    theRoot = addTree(theRoot, varPtr);
 }
 
-int addTree(VarNode *root, Variable *var)
+void matrDef(const FILE *fp)
 {
-    if (!root)
+
+    char *getWord(const FILE *fp, char *word, int lim);
+    VarNode *addTree(VarNode *, Variable *);
+    int getInt(char *, int, int);
+
+    char name[MAXNAME + 1];
+    char word[MAXEXPR + 1];
+    char dimStr[MAXEXPR + 1];
+    int fir_dim;
+    int sec_dim;
+
+    if (getWord(fp, word, MAXNAME) == NULL || strcmp(name, "\n") == 0)
     {
-        root = (VarNode *)malloc(sizeof(VarNode));
-        root->var = var;
-        return 0; // Successfully added
+        raiseError(1); // Error: no variable name specified
+    }
+    strcpy(name, word);
+
+    if (getWord(fp, word, MAXEXPR) == NULL || strcmp(word, "\n") == 0)
+    {
+        printf("line 333\n");
+        raiseError(4); // Error: no dimension specified, too few arguments
     }
 
-    if (strcmp(var->name, root->var->name) > 0) // Go to right child
+    // Index of the first comma
+    int comma = (int)(strchr(word, ',') - word);
+    printf("line 338\n");
+
+    // Get the  first dimension
+    fir_dim = getInt(word, 1, comma - 1);
+    printf("line 342\n");
+
+    // Get the  second dimension
+    sec_dim = getInt(word, comma + 1, strlen(word) - 2);
+    printf("line 346\n");
+
+    if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
-        return addTree(root->right, var);
+        raiseError(2); // Error: too many arguments for variable declaration
     }
-    else if (strcmp(var->name, root->var->name) < 0) // Go to left
+
+    // Allocate storage for the variable
+    Variable *varPtr = (Variable *)malloc(sizeof(Variable));
+
+    // Put the type and name
+    varPtr->type = VARMAT;
+    strcpy(varPtr->name, name);
+    varPtr->fir_dim = fir_dim;
+    varPtr->sec_dim = sec_dim;
+    // Allocate memory for the array
+    varPtr->arr = (int *)malloc(fir_dim * sec_dim * sizeof(int));
+    varPtr->arr_step = sec_dim;
+
+    // Add the node to the tree
+    theRoot = addTree(theRoot, varPtr);
+}
+
+int getInt(char *str, int beg, int end)
+{
+
+    while (isspace(str[beg++]))
+        ;
+
+    --beg;
+    printf("line 369\n");
+    if (beg > end)
     {
-        return addTree(root->left, var);
+        printf("line 372\n");
+        // Raise error: No integer
+        raiseError(4);
+    }
+    printf("line 376\n");
+
+    int theInt = 0;
+    int c = str[beg++]; // Initialize it, otherwise it will be space
+
+    if (c < '1' || c > '9')
+    {
+        raiseError(6); // Expected an integer, this is not an integer
+    }
+    theInt = 10 * theInt + c - '0';
+
+    c = str[beg++];
+
+    while (beg <= end && !isspace(c))
+    {
+        if (c < '0' || c > '9')
+        {
+            raiseError(6); // Expected an integer, this is not an integer
+        }
+        theInt = 10 * theInt + c - '0';
+        c = str[beg++];
+    }
+
+    while (beg <= end)
+    {
+        if (!isspace(c))
+        {
+            // Raise error: too many dimensions specified
+            raiseError(2);
+        }
+        c = str[beg++];
+    }
+
+    return theInt;
+}
+
+VarNode *addTree(VarNode *root, Variable *var)
+{
+
+    // printf("line 259\n");
+    int cond;
+
+    if (root == NULL)
+    {
+        // printf("line 263\n");
+
+        root = (VarNode *)malloc(sizeof(VarNode));
+        root->var = var;
+        // printf("%s\n", root->var->name);
+        root->left = root->right = NULL;
+        // printf("%s\n", theRoot->var->name);
+        //  return 0; // Successfully added
+    }
+    else if ((cond = strcmp(var->name, root->var->name)) > 0) // Go to right child
+    {
+        // printf("line 272\n");
+
+        root->right = addTree(root->right, var);
+    }
+    else if (cond < 0) // Go to left
+    {
+        // printf("line 278\n");
+
+        root->left = addTree(root->left, var);
     }
     else // If they are equal
     {
-        return 3; // Error: a variable with same id is already declared
+        // printf("line 284\n");
+
+        raiseError(3, var->name); // Error: a variable with same id is already declared
+    }
+    return root;
+}
+
+void printTree(VarNode *root)
+{
+    if (!root)
+    {
+        // printf("line 295\n");
+        return;
+    }
+    // printf("line 303\n");
+    printTree(root->left);
+    // printf("line 306\n");
+    switch (root->var->type)
+    {
+    case VARSCA:
+        printf("scalar %s\n", root->var->name);
+        break;
+
+    case VARVEC:
+        printf("vector %s %c %d %c\n", root->var->name, '[', root->var->fir_dim, ']');
+        break;
+
+    case VARMAT:
+        printf("matrix %s %c %d %c %d %c\n", root->var->name,
+               '[', root->var->fir_dim, ',', root->var->sec_dim, ']');
+        break;
+
+    default:
+        break;
+    }
+    // printf("line 316\n");
+    printTree(root->right);
+}
+/*
+Return a pointer to the variable. Return null pointer if the requested var
+do not exist.
+*/
+Variable *getVar(VarNode *root, char varName)
+{
+    if (root == NULL)
+    {
+        return NULL;
+    }
+
+    int cond;
+
+    if ((cond = strcmp(root->var->name, varName)) > 0)
+    {
+        return getVar(root->right, varName);
+    }
+    else if (cond < 0)
+    {
+        return getVar(root->left, varName);
+    }
+    else // If the searched name is in this node
+    {
+        return root->var;
     }
 }
 
@@ -323,7 +484,7 @@ char *getWord(const FILE *fp, char *word, int lim)
                     *++w = '\0';
                     return word;
                 }
-                else if (c == 'EOF')
+                else if (c == EOF)
                 {
                     return NULL;
                 }
@@ -425,4 +586,47 @@ void ungetch(int c)
         return;
     }
     buf[bufP++] = c;
+}
+
+/*
+Raises an error related to the matlang file. Then exits the program.
+*/
+void raiseError(int code, ...)
+{
+    printf("Error (Line %d):", lineNo);
+
+    va_list ap;
+    va_start(ap, code);
+
+    char *name;
+
+    switch (code)
+    {
+    case 1:
+        printf("No variable id is specified in the variable declaration");
+        break;
+    case 2:
+        printf("Too many arguments for variable declaration\n");
+        // You can maybe print out the correct syntax of variable declaration
+        break;
+    case 3:
+        name = va_arg(ap, char *);
+        printf("Variable with the id %s already declared\n", name);
+        break;
+    case 4:
+        printf("Too few arguments for variable declaration\n");
+        break;
+    case 5:
+        printf("Unended block\n");
+        break;
+    case 6:
+        printf("Expected an integer, this is not an integer\n");
+        break;
+    default:
+        break;
+    }
+    va_end(ap);
+    // Exit with 0. Because program has run successfully, even though matlang
+    // program is written with errors.
+    exit(0);
 }

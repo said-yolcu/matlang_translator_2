@@ -31,3 +31,16 @@ instantly write them to the outfile. If we use a linked list
 to keep the record, we can use that structure in a compiler 
 project, but it may be too space consuming for this project.
 
+3. Errors
+Errors are raised by a raiseError() function. This function 
+prints the error declaration, then exits the program. Each 
+error declaration specifies the line number. Some error 
+declarations may print out the correct usage (syntax) of the 
+source of the error.
+Error codes:
+0- No error. Successfull execution.
+1- No variable id specified in variable declaration
+2- Too many arguments for variable declaration 
+3- Variable with the same id already declared
+4- Too few arguments for variable declaration
+5- Unended block
