@@ -7,8 +7,11 @@
 
 #include "definitions.h"
 
-VarNode *theRoot; // Root of the variable tree
-int lineNo = 0;   // Current number of line that is being read
+LineBlock *blockList; // Linked list to store the lineBlocks of the program.
+                      // This is not null, but is an empty block
+LineBlock *lastBlock; // The place to add blocks to the list. It is null
+VarNode *theRoot;     // Root of the variable tree
+int lineNo = 0;       // Current number of line that is being read
 
 void raiseError(int code, ...); // RaiseError() is used in a lot of functions
                                 // so we should declare it here rather than in
@@ -18,6 +21,10 @@ int main(int argc, char const *argv[])
 {
     void readLines(const char *, const char *);
     void printTree(VarNode *);
+
+    blockList = (LineBlock *)malloc(sizeof(LineBlock));
+    lastBlock = NULL;
+    blockList->next = lastBlock;
 
     theRoot = NULL;
 
@@ -98,6 +105,7 @@ void readLines(const char fileName[], const char progName[])
         else
         {
             // Possible assignment statement, must check for '='
+            getAsn(fp, word);
         }
 
         // printf("%s\t", word);
@@ -128,8 +136,8 @@ void processLine(const FILE *fp, char line[])
 }
 */
 /*
-Checks whether the current line is a scalar definition. Returns 0 if so.
-Else returns a positive integer denoting the error type
+Checks whether the current line is a scalar definition.
+Creates a variable accordingly, if so.
 */
 void scalDef(const FILE *fp)
 {
@@ -170,8 +178,20 @@ void scalDef(const FILE *fp)
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
-}
 
+    // Create the lineBlock
+    LineBlock *blockPtr = (LineBlock *)malloc(sizeof(LineBlock));
+    blockPtr->type = SCA;
+    blockPtr->statement.var = varPtr;
+
+    // Add it to the blockList
+    lastBlock = addBlock(lastBlock, blockPtr);
+    // Point to the next position
+    lastBlock = lastBlock->next;
+}
+/*
+Get a vector definition. Create an according variable in the tree
+*/
 void vectDef(const FILE *fp)
 {
 
@@ -218,8 +238,21 @@ void vectDef(const FILE *fp)
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
+
+    // Create the lineBlock
+    LineBlock *blockPtr = (LineBlock *)malloc(sizeof(LineBlock));
+    blockPtr->type = VEC;
+    blockPtr->statement.var = varPtr;
+
+    // Add it to the blockList
+    lastBlock = addBlock(lastBlock, blockPtr);
+    // Point to the next position
+    lastBlock = lastBlock->next;
 }
 
+/*
+Get a matrix definition. Create an according variable in the tree
+*/
 void matrDef(const FILE *fp)
 {
 
@@ -276,8 +309,107 @@ void matrDef(const FILE *fp)
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
+
+    // Create the lineBlock
+    LineBlock *blockPtr = (LineBlock *)malloc(sizeof(LineBlock));
+    blockPtr->type = MAT;
+    blockPtr->statement.var = varPtr;
+
+    // Add it to the blockList
+    lastBlock = addBlock(lastBlock, blockPtr);
+    // Point to the next position
+    lastBlock = lastBlock->next;
 }
 
+void getAsn(const FILE *fp, char *word)
+{
+
+    char *getWord(const FILE *fp, char *word, int lim);
+    VarNode *addTree(VarNode *, Variable *);
+
+    char str[MAXNAME];
+    strcpy(str, word);
+
+    if (strcmp(str, "=") == 0)
+    {
+        // Raise error: too early an assignment operator or empty line
+    }
+    // This is the name of the assignment-destination variable
+    char name[MAXNAME];
+    strcpy(name, str);
+
+    Variable *varPtr = getVar(theRoot, name);
+
+    if (varPtr == NULL)
+    {
+        // Raise error: No such variable exists
+    }
+
+    Assign *assignment = (Assign *)malloc(sizeof(Assign));
+
+    assignment->destVar = varPtr;
+
+    if (getWord(fp, str, MAXEXPR) == NULL || strcmp(str, "\n") == 0)
+    {
+        // Raise error: meaningless line
+    }
+
+    int type;    // Type of the variable
+    int fir_pos; // First index position in array
+    int sec_pos; // Second index position in array
+
+    if (strcmp(str, "=") != 0)
+    {
+        // Then it is a [] block
+        if ((type = varPtr->type) == VARVEC)
+        {
+            fir_pos = getInt(str, 1, strlen(str) - 2);
+            if (fir_pos > varPtr->fir_dim || fir_pos <= 0)
+            {
+                // Raise error: index is out of bounds
+            }
+            assignment->fir_pos = fir_pos;
+        }
+        else if (type == VARMAT)
+        {
+            int comma = (int)(strchr(str, ',') - str);
+            fir_pos = getInt(str, 1, comma - 1);
+            sec_pos = getInt(str, comma + 1, strlen(str) - 2);
+            if (fir_pos > varPtr->fir_dim || fir_pos <= 0)
+            {
+                // Raise error: first index is out of bounds
+            }
+            if (sec_pos > varPtr->sec_dim || sec_pos <= 0)
+            {
+                // Raise error: second index is out of bounds
+            }
+            assignment->fir_pos = fir_pos;
+            assignment->sec_pos = sec_pos;
+        }
+        else
+        {
+            // Raise error: scalar cannot take brackets
+        }
+    }
+
+    if (getWord(fp, str, MAXEXPR) == NULL || strcmp(str, "\n") == 0 ||
+        strcmp(str, "="))
+    {
+        // Raise error: we are waiting an assignment operator here
+    }
+
+    char expr[MAXEXPR];
+
+    while (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
+    {
+        strcat(expr, str);
+    }
+}
+
+/*
+Get the int value in the string betweem the beg and end indices.
+Discard preceding and succeeding white spaces.
+*/
 int getInt(char *str, int beg, int end)
 {
 
@@ -366,6 +498,24 @@ VarNode *addTree(VarNode *root, Variable *var)
     return root;
 }
 
+LineBlock *addBlock(LineBlock *list, LineBlock *newBlock)
+{
+    if (list == NULL)
+    {
+        // The according storage is already created. Do not create it again
+        // list = (LineBlock *)malloc(sizeof(LineBlock));
+        list = newBlock;
+        list->next = NULL;
+        return list;
+    }
+
+    fprintf(stderr, "Error in addBlock function\n");
+    exit(1);
+}
+
+/*
+Print the variable tree in ascending name order
+*/
 void printTree(VarNode *root)
 {
     if (!root)
@@ -421,6 +571,18 @@ Variable *getVar(VarNode *root, char varName)
     else // If the searched name is in this node
     {
         return root->var;
+    }
+}
+
+Expression * expressify(char * str){
+    int level =0;
+    int i;
+    for(i=0; str[i]!=NULLCHAR; i++){
+        if(str[i]=='('){
+            level++;
+        }else if(str[i]== ')'){
+            level--;
+        }
     }
 }
 

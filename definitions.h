@@ -63,7 +63,9 @@ typedef struct Forls
 
 typedef struct Assigns
 {
-    char leftSide[MAXEXPR + 1];
+    Variable *destVar; // Id of the destination variable
+    int fir_pos;       // Position in the first dimension
+    int sec_pos;       // Position in the second dimension
     char rightSide[MAXEXPR + 1];
 } Assign;
 
@@ -75,6 +77,55 @@ typedef struct VariableNodes
                                  // the left has names that come earlier
                                  // on the dictionary
 } VarNode;
+
+typedef struct Expressions
+{
+    enum
+    {
+        VAR,                      // Variable
+        ADD,                      // Addition
+        MULT,                     // Multiplication
+        SUBT,                     // Subtraction
+        ELEM,                     // Getting element( with brackets)
+        SQRT,                     // Sqrt()
+        TR,                       // Tr()
+        PAR                       // Parantheses
+    } function;                   // Type of the expression is its operator
+                                  // or function
+    struct Expressions fir_child; // Almost all the expressions have a child
+    struct Expressions sec_child; // Some of the expressions have a second child
+
+} Expression;
+
+typedef struct OperFuns
+{
+    enum
+    {
+        TYADD,
+        TYSUBT,
+        TYMULT,
+        TYSQRT,
+        TYTR,
+        TYELEM,
+        TYPAR
+    } type;
+
+    enum
+    {
+        PREADDSUB, // Addition and subtraction have the lowest precision
+        PREMULT,   // Multiplication
+        PRETRSQRT, // Tr and sqrt
+        PREELEM,   // Element get Var[1,2]
+        PREPAR,    // Parantheses. Function calls' parantheses count parantheses
+                   // also
+    } prec;        // Precedence of the operator/function
+    int level;     // Paranthesization level of the function .
+                   // As parantesization incease, precedence increase
+    int index;     // Index of the opFun in the string, or start index if
+                   // the opFun takes multiple indices
+    int endIn;     // End index of the opFun
+
+} OperFun;
 
 typedef struct LineBlocks
 {
@@ -101,4 +152,6 @@ typedef struct LineBlocks
         Forl *forlArg;     // For for()
         Assign *assignArg; // For assignments '='
     } statement;
+
+    LineBlock *next;
 } LineBlock;

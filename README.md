@@ -44,3 +44,6 @@ Error codes:
 3- Variable with the same id already declared
 4- Too few arguments for variable declaration
 5- Unended block
+
+4. Arrays
+Array indices in matlang are counted from 1 onwards.
