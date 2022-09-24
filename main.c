@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
 
     theRoot = NULL;
 
-    char fileName[] = "/home/said/school/spring_semester_2022/cmpe_230/homeworks/hw_1/ex1.txt";
+    char fileName[] = "/home/said/school/2022_spring_semester/cmpe_230/homeworks/hw_1/ex1.txt";
 
     readLines(fileName, argv[0]);
     printTree(theRoot);
@@ -42,6 +42,8 @@ void readLines(const char fileName[], const char progName[])
     char *getWord(const FILE *, char *, int);
     void scalDef(const FILE *);
     void vectDef(const FILE *);
+    void getAsn(const FILE *, char *);
+    void matrDef(const FILE *);
 
     FILE *fp;
 
@@ -102,6 +104,10 @@ void readLines(const char fileName[], const char progName[])
         {
             // Tr statement
         }
+        else if (strcmp(word, "\n") == 0) // New line is a distinct word
+        {
+            continue;
+        }
         else
         {
             // Possible assignment statement, must check for '='
@@ -147,7 +153,7 @@ void scalDef(const FILE *fp)
     char name[MAXNAME + 1];
     char word[MAXEXPR + 1];
 
-    printf("line 224\n");
+    // printf("line 224\n");
 
     if (getWord(fp, word, MAXNAME) == NULL || strcmp(name, "\n") == 0)
     {
@@ -155,14 +161,14 @@ void scalDef(const FILE *fp)
     }
     strcpy(name, word);
 
-    printf("line 232\n");
+    // printf("line 232\n");
 
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
         raiseError(2); // Error: too many arguments for variable declaration
     }
 
-    printf("line 239\n");
+    // printf("line 239\n");
 
     // Allocate storage for the variable
     Variable *varPtr = (Variable *)malloc(sizeof(Variable));
@@ -178,7 +184,7 @@ void scalDef(const FILE *fp)
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
-
+    /*
     // Create the lineBlock
     LineBlock *blockPtr = (LineBlock *)malloc(sizeof(LineBlock));
     blockPtr->type = SCA;
@@ -188,6 +194,7 @@ void scalDef(const FILE *fp)
     lastBlock = addBlock(lastBlock, blockPtr);
     // Point to the next position
     lastBlock = lastBlock->next;
+    */
 }
 /*
 Get a vector definition. Create an according variable in the tree
@@ -215,11 +222,11 @@ void vectDef(const FILE *fp)
         printf("line 286\n");
         raiseError(4); // Error: no dimension specified, too few arguments
     }
-    printf("line 288\n");
+    // printf("line 288\n");
 
     // Get the dimension
     dim = getInt(word, 1, strlen(word) - 2);
-    printf("line 292\n");
+    // printf("line 292\n");
 
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
@@ -238,7 +245,7 @@ void vectDef(const FILE *fp)
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
-
+    /*
     // Create the lineBlock
     LineBlock *blockPtr = (LineBlock *)malloc(sizeof(LineBlock));
     blockPtr->type = VEC;
@@ -248,6 +255,7 @@ void vectDef(const FILE *fp)
     lastBlock = addBlock(lastBlock, blockPtr);
     // Point to the next position
     lastBlock = lastBlock->next;
+    */
 }
 
 /*
@@ -280,15 +288,15 @@ void matrDef(const FILE *fp)
 
     // Index of the first comma
     int comma = (int)(strchr(word, ',') - word);
-    printf("line 338\n");
+    // printf("line 338\n");
 
     // Get the  first dimension
     fir_dim = getInt(word, 1, comma - 1);
-    printf("line 342\n");
+    // printf("line 342\n");
 
     // Get the  second dimension
     sec_dim = getInt(word, comma + 1, strlen(word) - 2);
-    printf("line 346\n");
+    // printf("line 346\n");
 
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
@@ -309,7 +317,7 @@ void matrDef(const FILE *fp)
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
-
+    /*
     // Create the lineBlock
     LineBlock *blockPtr = (LineBlock *)malloc(sizeof(LineBlock));
     blockPtr->type = MAT;
@@ -319,32 +327,44 @@ void matrDef(const FILE *fp)
     lastBlock = addBlock(lastBlock, blockPtr);
     // Point to the next position
     lastBlock = lastBlock->next;
+    */
 }
 
 void getAsn(const FILE *fp, char *word)
 {
-
+    // printf("line 331\n");
     char *getWord(const FILE *fp, char *word, int lim);
     VarNode *addTree(VarNode *, Variable *);
+    Variable *getVar(VarNode *, char *);
+    int getInt(char *, int, int);
+    Expression *expressify(char *, int, int);
+    void printExpr(Expression *);
 
     char str[MAXNAME];
     strcpy(str, word);
-
+    // 1
     if (strcmp(str, "=") == 0)
     {
         // Raise error: too early an assignment operator or empty line
+        printf("line 345\n");
+        exit(1);
     }
     // This is the name of the assignment-destination variable
     char name[MAXNAME];
     strcpy(name, str);
-
+    // 2
+    //  Get the var from the variable tree
     Variable *varPtr = getVar(theRoot, name);
 
     if (varPtr == NULL)
     {
         // Raise error: No such variable exists
+        printf("line 356\n");
+        printf("%s\n", word);
+        exit(1);
     }
-
+    // 3
+    //  Create an assign struct
     Assign *assignment = (Assign *)malloc(sizeof(Assign));
 
     assignment->destVar = varPtr;
@@ -352,17 +372,21 @@ void getAsn(const FILE *fp, char *word)
     if (getWord(fp, str, MAXEXPR) == NULL || strcmp(str, "\n") == 0)
     {
         // Raise error: meaningless line
+        printf("line 370\n");
+        exit(1);
     }
-
+    // 4
     int type;    // Type of the variable
     int fir_pos; // First index position in array
     int sec_pos; // Second index position in array
 
     if (strcmp(str, "=") != 0)
     {
-        // Then it is a [] block
+        // printf("line 374\n");
+        //  Then it is a [] block
         if ((type = varPtr->type) == VARVEC)
         {
+            // printf("line 377\n");
             fir_pos = getInt(str, 1, strlen(str) - 2);
             if (fir_pos > varPtr->fir_dim || fir_pos <= 0)
             {
@@ -372,6 +396,7 @@ void getAsn(const FILE *fp, char *word)
         }
         else if (type == VARMAT)
         {
+            // printf("line 388\n");
             int comma = (int)(strchr(str, ',') - str);
             fir_pos = getInt(str, 1, comma - 1);
             sec_pos = getInt(str, comma + 1, strlen(str) - 2);
@@ -388,22 +413,64 @@ void getAsn(const FILE *fp, char *word)
         }
         else
         {
+            printf("line 405\n");
             // Raise error: scalar cannot take brackets
+            exit(1);
+        }
+
+        // Get the next word after the brackets
+        if (getWord(fp, str, MAXEXPR) == NULL)
+        {
+            // Raise error: no word after the brackets
+            exit(1);
         }
     }
 
-    if (getWord(fp, str, MAXEXPR) == NULL || strcmp(str, "\n") == 0 ||
-        strcmp(str, "="))
+    // This word should be an assignment operator
+    if (/*strcmp(str, "\n") == 0 ||*/ strcmp(str, "=") != 0)
     {
         // Raise error: we are waiting an assignment operator here
+        printf("line 433\n");
+        exit(1);
     }
 
     char expr[MAXEXPR];
+    strcpy(expr, "");
+
+    if (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
+    {
+        if (strcmp(str, "{") == 0)
+        {
+            // This is a curly bracket assignment
+            strcat(expr, str);
+
+            while (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
+            {
+                strcat(expr, str);
+            }
+
+            // Process the curly bracket inputs here
+
+            return;
+        }
+        else
+        {
+            strcat(expr, str);
+        }
+    }
+    else
+    {
+        return;
+    }
 
     while (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
     {
         strcat(expr, str);
     }
+
+    assignment->rightSide = expressify(expr, 0, strlen(expr) - 1);
+    printExpr(assignment->rightSide);
+    //
 }
 
 /*
@@ -417,14 +484,14 @@ int getInt(char *str, int beg, int end)
         ;
 
     --beg;
-    printf("line 369\n");
+    // printf("line 369\n");
     if (beg > end)
     {
-        printf("line 372\n");
-        // Raise error: No integer
+        // printf("line 372\n");
+        //  Raise error: No integer
         raiseError(4);
     }
-    printf("line 376\n");
+    // printf("line 376\n");
 
     int theInt = 0;
     int c = str[beg++]; // Initialize it, otherwise it will be space
@@ -518,6 +585,7 @@ Print the variable tree in ascending name order
 */
 void printTree(VarNode *root)
 {
+    // printf("line 544\n");
     if (!root)
     {
         // printf("line 295\n");
@@ -551,39 +619,383 @@ void printTree(VarNode *root)
 Return a pointer to the variable. Return null pointer if the requested var
 do not exist.
 */
-Variable *getVar(VarNode *root, char varName)
+Variable *getVar(VarNode *root, char *varName)
 {
+    // printf("line 595\n");
     if (root == NULL)
     {
+        // printf("line 598\n");
         return NULL;
     }
 
     int cond;
 
-    if ((cond = strcmp(root->var->name, varName)) > 0)
+    if ((cond = strcmp(varName, root->var->name)) > 0)
     {
+        // printf("line 606\n");
         return getVar(root->right, varName);
     }
     else if (cond < 0)
     {
+        // printf("line 611\n");
         return getVar(root->left, varName);
     }
     else // If the searched name is in this node
     {
+        // printf("line 616\n");
+        // printf("line 646 %s\n", root->var->name);
         return root->var;
     }
 }
 
-Expression * expressify(char * str){
-    int level =0;
+/*
+Create and return a linked list of expressions out of given string
+between the given indices.
+*/
+Expression *expressify(char *str, int begin, int end)
+{
+    // printf("line 647 %s\n", str);
+    if (begin > end)
+    {
+        return NULL;
+    }
+    // int level = 0; // Level of the subexpression in the whole expression
     int i;
-    for(i=0; str[i]!=NULLCHAR; i++){
-        if(str[i]=='('){
-            level++;
-        }else if(str[i]== ')'){
-            level--;
+    int staIn;
+    char varName[MAXNAME]; // Variable name encountered
+    int varIn = 0;
+    // Expression *headExpr;           // Expression at the head of the linked list
+    //  Prev of the head is always null
+    Expression *curExpr; /* = headExpr;*/ // Current expression
+
+    int varOperNum = 0;
+    int maxLev = 0;
+
+    // Convert it to a list of expressions
+    // Curly bracket assignment will be evaluated somewhere else
+    for (i = begin; str[i] != NULLCHAR && i <= end; i++)
+    {
+        if (isspace(str[i]))
+        {
+            continue;
+        }
+        else if (str[i] == '(')
+        {
+            // A new expression
+            curExpr = (Expression *)malloc(sizeof(Expression));
+            // Level is unnecessary in new design
+            // curExpr->level = level;
+            curExpr->index = i; // Start index of the expression
+            // Make it -1 until you find the closing paranthesis
+            curExpr->endIn = -1;
+            curExpr->type = TYPAR;
+            curExpr->prec = PREPAR;
+            // maxLev = max(maxLev, level);
+
+            // Find the closing paranthesis
+            int parNum = 0;
+            for (;; i++)
+            {
+                if (str[i] == NULLCHAR || i > end)
+                {
+                    // Raise error: unended block
+                    printf("line 693 at i %d with open par at %d\n", i,
+                           curExpr->index);
+                    exit(1);
+                }
+
+                if (str[i] == '(')
+                    parNum++;
+                else if (str[i] == ')')
+                {
+                    parNum--;
+                    // Block end is found
+                    if (parNum == 0)
+                    {
+                        curExpr->endIn = i;
+                        // i will be increased in the outer loop anyway
+                        // i++;
+                        // Add the subexpressions
+                        curExpr->sub = expressify(str, curExpr->index + 1, curExpr->endIn - 1);
+                        // Point to the next expression
+                        // curExpr = curExpr->next;
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+        else if (str[i] == ')')
+        {
+            // Raise error: unbeginned block
+            // If a closing paranthesis is encountered at here, then it
+            // means that it has no corresponding beginning
+            printf("line 716 at i %d\n", i);
+            exit(1);
+        }
+        else if (str[i] == '[')
+        {
+            // A new expression
+            curExpr = (Expression *)malloc(sizeof(Expression));
+            // Level is unnecessary in new design
+            // curExpr->level = level;
+            curExpr->index = i; // Start index of the expression
+            // Make it -1 until you find the closing paranthesis
+            curExpr->endIn = -1;
+            curExpr->type = TYPAR;
+            curExpr->prec = PREPAR;
+            // maxLev = max(maxLev, level);
+
+            // Find the closing paranthesis
+            int parNum = 0;
+            for (;; i++)
+            {
+                if (str[i] == NULLCHAR || i > end)
+                {
+                    // Raise error: unended block
+                }
+
+                if (str[i] == '(')
+                    parNum++;
+                else if (str[i] == ')')
+                {
+                    parNum--;
+                    // Block end is found
+                    if (parNum == 0)
+                    {
+                        curExpr->endIn = i;
+                        // i++;
+                        //  Add the subexpressions
+                        int comma = (int)(strchr(str, ',') - str);
+                        if (curExpr->index < comma && comma < curExpr->endIn)
+                        {
+                            curExpr->sub = expressify(str, curExpr->index + 1,
+                                                      comma - 1);
+                            curExpr->secSub = expressify(str, comma + 1,
+                                                         curExpr->endIn - 1);
+                        }
+                        else
+                        {
+                            curExpr->sub = expressify(str, curExpr->index + 1,
+                                                      curExpr->endIn - 1);
+                        }
+                        // Point to the next expression
+                        // curExpr = curExpr->next;
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+        else if (str[i] == ']')
+        {
+            // Raise error: unbeginned block
+            // If a closing bracket is encountered here, then it has no
+            // corresponding opening bracket
+            printf("line 777\n");
+            exit(1);
+        }
+        else if ('1' <= str[i] && str[i] <= '9') // Look for numbers
+        {
+            staIn = i;
+            int num = 0;
+            // printf("line 788 %d\n", num);
+            while ('0' <= str[i] && str[i] <= '9')
+            {
+                // printf("line 791 %d at %d\n", num, i);
+                num = 10 * num + str[i] - '0';
+                i++;
+            }
+            // printf("line 793 %d\n", num);
+            //  We incremented i one too much
+            --i;
+            curExpr = (Expression *)malloc(sizeof(Expression));
+            curExpr->index = staIn;
+            curExpr->type = TYNUM;
+
+            curExpr->number = num;
+            // Point to the next expression
+            // curExpr = curExpr->next;
+            break;
+        }
+        else if (('a' <= str[i] && str[i] <= 'z' || // Look for variables,
+                  'A' <= str[i] && str[i] <= 'Z'))  // sqrt and tr
+        {
+            staIn = i;
+            while (('a' <= str[i] && str[i] <= 'z' ||
+                    'A' <= str[i] && str[i] <= 'Z') &&
+                   str[i] != NULLCHAR && i <= end)
+            {
+                varName[varIn++] = str[i++];
+            }
+            varName[varIn] = NULLCHAR;
+
+            if (strcmp(varName, "sqrt") == 0)
+            {
+                curExpr = (Expression *)malloc(sizeof(Expression));
+                curExpr->index = staIn;
+                curExpr->type = TYSQRT;
+                curExpr->prec = PRETRSQRT;
+                // i have increased one too much
+                --i;
+                // Point to the next expression
+                // curExpr = curExpr->next;
+            }
+            else if (strcmp(varName, "tr") == 0)
+            {
+                curExpr = (Expression *)malloc(sizeof(Expression));
+                curExpr->index = staIn;
+                curExpr->type = TYTR;
+                curExpr->prec = PRETRSQRT;
+                // i have increased one too much
+                --i;
+                // Point to the next expression
+                // curExpr = curExpr->next;
+            }
+            else // Variable
+            {
+                curExpr = (Expression *)malloc(sizeof(Expression));
+                curExpr->index = staIn;
+                // i have increased one too much
+                curExpr->endIn = --i;
+                curExpr->type = TYVAR;
+                // Copy the variable name to the expression structure
+                strcpy(curExpr->varName, varName);
+                // Point to the next expression
+                // curExpr = curExpr->next;
+            }
+            // Point to the next expression
+            // curExpr = curExpr->next;
+            break;
+        }
+        else if (str[i] == '+')
+        {
+            curExpr = (Expression *)malloc(sizeof(Expression));
+            curExpr->index = i;
+            curExpr->type = TYADD;
+            curExpr->prec = PREADDSUB;
+            // Point to the next expression
+            // curExpr = curExpr->next;
+            break;
+        }
+        else if (str[i] == '-')
+        {
+            curExpr = (Expression *)malloc(sizeof(Expression));
+            curExpr->index = i;
+            curExpr->type = TYSUBT;
+            curExpr->prec = PREADDSUB;
+            // Point to the next expression
+            // curExpr = curExpr->next;
+            break;
+        }
+        else if (str[i] == '*')
+        {
+            curExpr = (Expression *)malloc(sizeof(Expression));
+            curExpr->index = i;
+            curExpr->type = TYMULT;
+            curExpr->prec = PREMULT;
+            // Point to the next expression
+            // curExpr = curExpr->next;
+            break;
+        }
+        else
+        {
+            // Raise error: illegal character
+            printf("line 874\n");
+            exit(1);
         }
     }
+    /*
+    printf("line 878\n");
+    void printExpr(Expression *);
+    printExpr(headExpr);
+    */
+    curExpr->next = expressify(str, i + 1, end);
+    return curExpr;
+}
+
+/*
+Print the given expression, then its next expression until the next
+is null.
+*/
+void printExpr(Expression *expr)
+{
+    // printf("line 887\n");
+    if (expr == NULL)
+    {
+        // printf("line 890\n");
+        return;
+    }
+    // printf("line 893\n");
+    /*
+    if (expr)
+    {
+        printf("expression exists\n");
+        if (expr->type)
+        {
+            printf("expression type exists\n");
+        }
+        if (expr->index)
+        {
+            printf("expression index is %d\n", expr->index);
+        }
+    }
+    */
+
+    switch (expr->type)
+    {
+        // printf("line 897\n");
+    case TYNUM:
+        printf("%d ", expr->number);
+        break;
+
+    case TYVAR:
+        printf("%s ", expr->varName);
+        break;
+    case TYADD:
+        printf("+ ");
+        break;
+        //
+    case TYSUBT:
+        printf("- ");
+
+        break;
+    case TYMULT:
+        printf("* ");
+
+        break;
+    case TYSQRT:
+        printf("sqrt ");
+
+        break;
+        //
+    case TYTR:
+        printf("tr ");
+
+        break;
+    case TYELEM:
+        printf("[ ");
+        printExpr(expr->sub);
+        if (expr->secSub != NULL)
+        {
+            printf(", ");
+            printExpr(expr->secSub);
+        }
+        printf("] ");
+        break;
+    case TYPAR:
+        printf("( ");
+        printExpr(expr->sub);
+        printf(") ");
+        break;
+
+    default:
+        printf("line 936\n");
+        exit(1);
+        break;
+    }
+    // printf("line 978\n");
+    printExpr(expr->next);
 }
 
 /*
@@ -791,4 +1203,9 @@ void raiseError(int code, ...)
     // Exit with 0. Because program has run successfully, even though matlang
     // program is written with errors.
     exit(0);
+}
+
+int max(int a, int b)
+{
+    return (a > b) ? a : b;
 }

@@ -6,6 +6,7 @@ Various "define"s, typedefs and structs reside here
 #define MAXEXPR 100
 #define MAXNAME 20
 #define MAXLINE MAXEXPR
+#define MAXVAROPER 30 // Maximum number of variables or operators on a line
 #define NULLCHAR '\0'
 #define TRUE 1
 #define WORDLEN 50 // Maximum word length, including blocks
@@ -66,7 +67,7 @@ typedef struct Assigns
     Variable *destVar; // Id of the destination variable
     int fir_pos;       // Position in the first dimension
     int sec_pos;       // Position in the second dimension
-    char rightSide[MAXEXPR + 1];
+    struct Expressions *rightSide;
 } Assign;
 
 typedef struct VariableNodes
@@ -77,7 +78,7 @@ typedef struct VariableNodes
                                  // the left has names that come earlier
                                  // on the dictionary
 } VarNode;
-
+/*
 typedef struct Expressions
 {
     enum
@@ -96,11 +97,13 @@ typedef struct Expressions
     struct Expressions sec_child; // Some of the expressions have a second child
 
 } Expression;
-
-typedef struct OperFuns
+*/
+typedef struct Expressions
 {
-    enum
+    enum exprType
     {
+        TYNUM = 1,
+        TYVAR,
         TYADD,
         TYSUBT,
         TYMULT,
@@ -112,20 +115,31 @@ typedef struct OperFuns
 
     enum
     {
-        PREADDSUB, // Addition and subtraction have the lowest precision
+        PREADDSUB=1, // Addition and subtraction have the lowest precision
         PREMULT,   // Multiplication
         PRETRSQRT, // Tr and sqrt
         PREELEM,   // Element get Var[1,2]
         PREPAR,    // Parantheses. Function calls' parantheses count parantheses
                    // also
     } prec;        // Precedence of the operator/function
-    int level;     // Paranthesization level of the function .
-                   // As parantesization incease, precedence increase
-    int index;     // Index of the opFun in the string, or start index if
-                   // the opFun takes multiple indices
-    int endIn;     // End index of the opFun
+    // int level;     // Paranthesization level of the function .
+    // As parantesization incease, precedence increase
 
-} OperFun;
+    int number; // Number equivalence of the expression if it is a
+                // number expression
+    int index;  // Index of the opFun in the string, or start index if
+                // the opFun takes multiple indices
+    int endIn;  // End index of the opFun
+
+    char varName[MAXNAME]; // Variable name if it is a variable
+
+    struct Expressions *next;   // Next expression
+    struct Expressions *prev;   // Previous expression
+    struct Expressions *sub;    // Subexpression list
+    struct Expressions *secSub; // Second subexpression list if the
+                                // expression is a bracket expression
+
+} Expression;
 
 typedef struct LineBlocks
 {
@@ -153,5 +167,5 @@ typedef struct LineBlocks
         Assign *assignArg; // For assignments '='
     } statement;
 
-    LineBlock *next;
+    struct LineBlocks *next;
 } LineBlock;
