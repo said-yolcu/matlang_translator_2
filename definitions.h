@@ -110,18 +110,20 @@ typedef struct Expressions
         TYSQRT,
         TYTR,
         TYELEM,
-        TYPAR
+        TYPAR,
+        TYCURL,  // Curly bracket expression
+        TYCURLEL // Curly bracket element
     } type;
 
     enum
     {
-        PREADDSUB=1, // Addition and subtraction have the lowest precision
-        PREMULT,   // Multiplication
-        PRETRSQRT, // Tr and sqrt
-        PREELEM,   // Element get Var[1,2]
-        PREPAR,    // Parantheses. Function calls' parantheses count parantheses
-                   // also
-    } prec;        // Precedence of the operator/function
+        PREADDSUB = 1, // Addition and subtraction have the lowest precision
+        PREMULT,       // Multiplication
+        PRETRSQRT,     // Tr and sqrt
+        PREELEM,       // Element get Var[1,2]
+        PREPAR,        // Parantheses. Function calls' parantheses count parantheses
+                       // also
+    } prec;            // Precedence of the operator/function
     // int level;     // Paranthesization level of the function .
     // As parantesization incease, precedence increase
 
@@ -130,6 +132,7 @@ typedef struct Expressions
     int index;  // Index of the opFun in the string, or start index if
                 // the opFun takes multiple indices
     int endIn;  // End index of the opFun
+    int elNum;  // Number of elements if it is a curly bracket expression
 
     char varName[MAXNAME]; // Variable name if it is a variable
 

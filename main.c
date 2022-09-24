@@ -42,7 +42,7 @@ void readLines(const char fileName[], const char progName[])
     char *getWord(const FILE *, char *, int);
     void scalDef(const FILE *);
     void vectDef(const FILE *);
-    void getAsn(const FILE *, char *);
+    Assign *getAsn(const FILE *, char *);
     void matrDef(const FILE *);
 
     FILE *fp;
@@ -55,7 +55,7 @@ void readLines(const char fileName[], const char progName[])
         fprintf(stderr, "%s: cannot open %s", progName, fileName);
         exit(2);
     }
-    // printf("line 135\n");
+    printf("line 135\n");
     char word[WORDLEN];
 
     int prevLine = 0;
@@ -83,6 +83,7 @@ void readLines(const char fileName[], const char progName[])
         else if (strcmp(word, "print") == 0)
         {
             // Print statement
+            printf("line 86\n");
         }
         else if (strcmp(word, "printsep") == 0)
         {
@@ -153,7 +154,7 @@ void scalDef(const FILE *fp)
     char name[MAXNAME + 1];
     char word[MAXEXPR + 1];
 
-    // printf("line 224\n");
+    printf("line 224\n");
 
     if (getWord(fp, word, MAXNAME) == NULL || strcmp(name, "\n") == 0)
     {
@@ -161,26 +162,26 @@ void scalDef(const FILE *fp)
     }
     strcpy(name, word);
 
-    // printf("line 232\n");
+    printf("line 232\n");
 
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
         raiseError(2); // Error: too many arguments for variable declaration
     }
 
-    // printf("line 239\n");
+    printf("line 239\n");
 
     // Allocate storage for the variable
     Variable *varPtr = (Variable *)malloc(sizeof(Variable));
 
-    // printf("line 244\n");
+    printf("line 244\n");
 
     // Put the type and name
     varPtr->type = VARSCA;
-    // printf("line 248\n");
+    printf("line 248\n");
     strcpy(varPtr->name, name);
 
-    // printf("line 251\n");
+    printf("line 251\n");
 
     // Add the node to the tree
     theRoot = addTree(theRoot, varPtr);
@@ -222,11 +223,11 @@ void vectDef(const FILE *fp)
         printf("line 286\n");
         raiseError(4); // Error: no dimension specified, too few arguments
     }
-    // printf("line 288\n");
+    printf("line 288\n");
 
     // Get the dimension
     dim = getInt(word, 1, strlen(word) - 2);
-    // printf("line 292\n");
+    printf("line 292\n");
 
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
@@ -288,15 +289,15 @@ void matrDef(const FILE *fp)
 
     // Index of the first comma
     int comma = (int)(strchr(word, ',') - word);
-    // printf("line 338\n");
+    printf("line 338\n");
 
     // Get the  first dimension
     fir_dim = getInt(word, 1, comma - 1);
-    // printf("line 342\n");
+    printf("line 342\n");
 
     // Get the  second dimension
     sec_dim = getInt(word, comma + 1, strlen(word) - 2);
-    // printf("line 346\n");
+    printf("line 346\n");
 
     if (getWord(fp, word, MAXEXPR) != NULL && strcmp(word, "\n") != 0)
     {
@@ -330,15 +331,16 @@ void matrDef(const FILE *fp)
     */
 }
 
-void getAsn(const FILE *fp, char *word)
+Assign *getAsn(const FILE *fp, char *word)
 {
-    // printf("line 331\n");
+    printf("line 335\n");
     char *getWord(const FILE *fp, char *word, int lim);
     VarNode *addTree(VarNode *, Variable *);
     Variable *getVar(VarNode *, char *);
     int getInt(char *, int, int);
     Expression *expressify(char *, int, int);
     void printExpr(Expression *);
+    Expression *curlify(char *, int, int);
 
     char str[MAXNAME];
     strcpy(str, word);
@@ -348,6 +350,7 @@ void getAsn(const FILE *fp, char *word)
         // Raise error: too early an assignment operator or empty line
         printf("line 345\n");
         exit(1);
+        // return NULL;
     }
     // This is the name of the assignment-destination variable
     char name[MAXNAME];
@@ -362,6 +365,7 @@ void getAsn(const FILE *fp, char *word)
         printf("line 356\n");
         printf("%s\n", word);
         exit(1);
+        // return NULL;
     }
     // 3
     //  Create an assign struct
@@ -374,6 +378,7 @@ void getAsn(const FILE *fp, char *word)
         // Raise error: meaningless line
         printf("line 370\n");
         exit(1);
+        // return NULL;
     }
     // 4
     int type;    // Type of the variable
@@ -382,47 +387,59 @@ void getAsn(const FILE *fp, char *word)
 
     if (strcmp(str, "=") != 0)
     {
-        // printf("line 374\n");
+        printf("line 374\n");
         //  Then it is a [] block
         if ((type = varPtr->type) == VARVEC)
         {
-            // printf("line 377\n");
+            printf("line 377\n");
             fir_pos = getInt(str, 1, strlen(str) - 2);
             if (fir_pos > varPtr->fir_dim || fir_pos <= 0)
             {
                 // Raise error: index is out of bounds
+                printf("line 398\n");
+                exit(1);
+                // return NULL;
             }
             assignment->fir_pos = fir_pos;
         }
         else if (type == VARMAT)
         {
-            // printf("line 388\n");
+            printf("line 388\n");
             int comma = (int)(strchr(str, ',') - str);
             fir_pos = getInt(str, 1, comma - 1);
             sec_pos = getInt(str, comma + 1, strlen(str) - 2);
             if (fir_pos > varPtr->fir_dim || fir_pos <= 0)
             {
                 // Raise error: first index is out of bounds
+                printf("line 413\n");
+                exit(1);
+                // return NULL;
             }
             if (sec_pos > varPtr->sec_dim || sec_pos <= 0)
             {
                 // Raise error: second index is out of bounds
+                printf("line 420\n");
+                exit(1);
+                // return NULL;
             }
             assignment->fir_pos = fir_pos;
             assignment->sec_pos = sec_pos;
         }
         else
         {
-            printf("line 405\n");
+            printf("line 429\n");
             // Raise error: scalar cannot take brackets
             exit(1);
+            // return NULL;
         }
 
         // Get the next word after the brackets
         if (getWord(fp, str, MAXEXPR) == NULL)
         {
             // Raise error: no word after the brackets
+            printf("line 439\n");
             exit(1);
+            // return NULL;
         }
     }
 
@@ -430,7 +447,7 @@ void getAsn(const FILE *fp, char *word)
     if (/*strcmp(str, "\n") == 0 ||*/ strcmp(str, "=") != 0)
     {
         // Raise error: we are waiting an assignment operator here
-        printf("line 433\n");
+        printf("line 449\n");
         exit(1);
     }
 
@@ -439,28 +456,36 @@ void getAsn(const FILE *fp, char *word)
 
     if (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
     {
-        if (strcmp(str, "{") == 0)
+        if (str[0] == '{')
         {
+            printf("line 460\n");
             // This is a curly bracket assignment
             strcat(expr, str);
+            printf("line 463 expr is %s of length %d\n", expr, strlen(expr));
 
+            /*
             while (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
             {
                 strcat(expr, str);
             }
-
+            */
             // Process the curly bracket inputs here
+            assignment->rightSide = curlify(expr, 0, strlen(expr) - 1);
 
-            return;
+            printExpr(assignment->rightSide);
+            printf("line 475\n");
+            return assignment;
         }
         else
         {
+            printf("line 477 str is %s\n", str);
             strcat(expr, str);
         }
     }
     else
     {
-        return;
+        printf("line 483\n");
+        return NULL;
     }
 
     while (getWord(fp, str, MAXEXPR) != NULL && strcmp(str, "\n") != 0)
@@ -470,6 +495,7 @@ void getAsn(const FILE *fp, char *word)
 
     assignment->rightSide = expressify(expr, 0, strlen(expr) - 1);
     printExpr(assignment->rightSide);
+    return assignment;
     //
 }
 
@@ -484,14 +510,14 @@ int getInt(char *str, int beg, int end)
         ;
 
     --beg;
-    // printf("line 369\n");
+    printf("line 369\n");
     if (beg > end)
     {
-        // printf("line 372\n");
+        printf("line 372\n");
         //  Raise error: No integer
         raiseError(4);
     }
-    // printf("line 376\n");
+    printf("line 376\n");
 
     int theInt = 0;
     int c = str[beg++]; // Initialize it, otherwise it will be space
@@ -530,12 +556,12 @@ int getInt(char *str, int beg, int end)
 VarNode *addTree(VarNode *root, Variable *var)
 {
 
-    // printf("line 259\n");
+    printf("line 259\n");
     int cond;
 
     if (root == NULL)
     {
-        // printf("line 263\n");
+        printf("line 263\n");
 
         root = (VarNode *)malloc(sizeof(VarNode));
         root->var = var;
@@ -546,19 +572,19 @@ VarNode *addTree(VarNode *root, Variable *var)
     }
     else if ((cond = strcmp(var->name, root->var->name)) > 0) // Go to right child
     {
-        // printf("line 272\n");
+        printf("line 272\n");
 
         root->right = addTree(root->right, var);
     }
     else if (cond < 0) // Go to left
     {
-        // printf("line 278\n");
+        printf("line 278\n");
 
         root->left = addTree(root->left, var);
     }
     else // If they are equal
     {
-        // printf("line 284\n");
+        printf("line 284\n");
 
         raiseError(3, var->name); // Error: a variable with same id is already declared
     }
@@ -585,15 +611,15 @@ Print the variable tree in ascending name order
 */
 void printTree(VarNode *root)
 {
-    // printf("line 544\n");
+    printf("line 610\n");
     if (!root)
     {
-        // printf("line 295\n");
+        printf("line 613\n");
         return;
     }
-    // printf("line 303\n");
+    printf("line 616\n");
     printTree(root->left);
-    // printf("line 306\n");
+    printf("line 618\n");
     switch (root->var->type)
     {
     case VARSCA:
@@ -612,7 +638,7 @@ void printTree(VarNode *root)
     default:
         break;
     }
-    // printf("line 316\n");
+    printf("line 637\n");
     printTree(root->right);
 }
 /*
@@ -621,10 +647,10 @@ do not exist.
 */
 Variable *getVar(VarNode *root, char *varName)
 {
-    // printf("line 595\n");
+    printf("line 646 %s\n", varName);
     if (root == NULL)
     {
-        // printf("line 598\n");
+        printf("line 649\n");
         return NULL;
     }
 
@@ -632,18 +658,18 @@ Variable *getVar(VarNode *root, char *varName)
 
     if ((cond = strcmp(varName, root->var->name)) > 0)
     {
-        // printf("line 606\n");
+        printf("line 657\n");
         return getVar(root->right, varName);
     }
     else if (cond < 0)
     {
-        // printf("line 611\n");
+        printf("line 662\n");
         return getVar(root->left, varName);
     }
     else // If the searched name is in this node
     {
-        // printf("line 616\n");
-        // printf("line 646 %s\n", root->var->name);
+        printf("line 667\n");
+        printf("line 668 %s\n", root->var->name);
         return root->var;
     }
 }
@@ -654,7 +680,7 @@ between the given indices.
 */
 Expression *expressify(char *str, int begin, int end)
 {
-    // printf("line 647 %s\n", str);
+    printf("line 647 %s\n", str);
     if (begin > end)
     {
         return NULL;
@@ -799,14 +825,14 @@ Expression *expressify(char *str, int begin, int end)
         {
             staIn = i;
             int num = 0;
-            // printf("line 788 %d\n", num);
+            printf("line 788 %d\n", num);
             while ('0' <= str[i] && str[i] <= '9')
             {
-                // printf("line 791 %d at %d\n", num, i);
+                printf("line 791 %d at %d\n", num, i);
                 num = 10 * num + str[i] - '0';
                 i++;
             }
-            // printf("line 793 %d\n", num);
+            printf("line 793 %d\n", num);
             //  We incremented i one too much
             --i;
             curExpr = (Expression *)malloc(sizeof(Expression));
@@ -901,7 +927,7 @@ Expression *expressify(char *str, int begin, int end)
         else
         {
             // Raise error: illegal character
-            printf("line 874\n");
+            printf("line 923 char %c\n", str[i]);
             exit(1);
         }
     }
@@ -915,18 +941,125 @@ Expression *expressify(char *str, int begin, int end)
 }
 
 /*
+Get curly bracket expression
+*/
+Expression *curlify(char *str, int beg, int end)
+{
+    printf("line 946\n");
+    Expression *curlElems(char *, int, int, int *);
+
+    // Make sure that the expression only consists of curly bracket expression
+    if (str[beg] != '{' && str[end] != '}')
+    {
+        // Raise error: invalid curly bracket syntax
+        printf("line 953\n");
+        exit(1);
+        // return NULL;
+    }
+    printf("line 958\n");
+    Expression *curExpr = (Expression *)malloc(sizeof(Expression));
+    printf("line 960\n");
+    curExpr->type = TYCURL;
+    curExpr->elNum = 0;
+    printf("line 963\n");
+    curExpr->sub = curlElems(str, beg + 1, end - 1, &(curExpr->elNum));
+    printf("line 965\n");
+    return curExpr;
+}
+
+/*
+Get and return the elements of a curly bracket expression
+*/
+Expression *curlElems(char *str, int beg, int end, int *elNum)
+{
+    printf("line 974\n");
+    if (beg > end)
+    {
+        printf("line 977\n");
+        return NULL;
+    }
+    int i = beg;
+    printf("line 981\n");
+    while (isspace(str[i]))
+    {
+        printf("line 984\n");
+        i++;
+        if (i > end)
+        {
+            printf("line 988\n");
+            return NULL;
+        }
+    }
+    printf("line 992\n");
+
+    int num = 0;
+
+    if (str[i] < '1' || '9' < str[i])
+    {
+        printf("line 996\n");
+        if (str[i] == '0') // The number can be zero too
+        {
+            if (++i <= end && !isspace(str[i]))
+            {
+                // Raise error: nonzero number starting with zero
+                printf("line 1003\n");
+                exit(1);
+            }
+        }
+        else
+        {
+            // Raise error: Curly bracket elements must be numbers
+            printf("line 1011\n");
+            exit(1);
+        }
+    }
+    else
+    {
+
+        printf("line 1018\n");
+
+        while (i <= end && '0' <= str[i] && str[i] <= '9')
+        {
+            printf("line 1022\n");
+            num = 10 * num + str[i] - '0';
+            i++;
+        }
+    }
+    Expression *elem = (Expression *)malloc(sizeof(Expression));
+    elem->type = TYCURLEL;
+    elem->number = num;
+    // Increase the number of elements
+    (*elNum)++;
+    printf("line 1032\n");
+
+    if (i <= end)
+    {
+        printf("line 1036\n");
+        elem->next = curlElems(str, i, end, elNum);
+    }
+    else
+    {
+        printf("line 1041\n");
+        elem->next = NULL;
+    }
+    printf("line 1044\n");
+
+    return elem;
+}
+
+/*
 Print the given expression, then its next expression until the next
 is null.
 */
 void printExpr(Expression *expr)
 {
-    // printf("line 887\n");
+    printf("line 1055\n");
     if (expr == NULL)
     {
-        // printf("line 890\n");
+        printf("line 1058\n");
         return;
     }
-    // printf("line 893\n");
+    printf("line 1061\n");
     /*
     if (expr)
     {
@@ -944,7 +1077,7 @@ void printExpr(Expression *expr)
 
     switch (expr->type)
     {
-        // printf("line 897\n");
+        printf("line 1079\n");
     case TYNUM:
         printf("%d ", expr->number);
         break;
@@ -989,12 +1122,23 @@ void printExpr(Expression *expr)
         printf(") ");
         break;
 
+    case TYCURL:
+        printf("{ ");
+        Expression *sub = expr->sub;
+        for (int i = 0; i < expr->elNum; i++)
+        {
+            printf("%d ", sub->number);
+            sub = sub->next;
+        }
+        printf("} ");
+        break;
+
     default:
-        printf("line 936\n");
+        printf("line 1136\n");
         exit(1);
         break;
     }
-    // printf("line 978\n");
+    printf("line 1140\n");
     printExpr(expr->next);
 }
 
