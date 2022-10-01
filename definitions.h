@@ -3,6 +3,7 @@ Various "define"s, typedefs and structs reside here
 */
 
 #define FALSE 0
+#define FORLINES 20 // Max number of lines in a for statement
 #define MAXEXPR 100
 #define MAXNAME 20
 #define MAXLINE MAXEXPR
@@ -78,26 +79,7 @@ typedef struct VariableNodes
                                  // the left has names that come earlier
                                  // on the dictionary
 } VarNode;
-/*
-typedef struct Expressions
-{
-    enum
-    {
-        VAR,                      // Variable
-        ADD,                      // Addition
-        MULT,                     // Multiplication
-        SUBT,                     // Subtraction
-        ELEM,                     // Getting element( with brackets)
-        SQRT,                     // Sqrt()
-        TR,                       // Tr()
-        PAR                       // Parantheses
-    } function;                   // Type of the expression is its operator
-                                  // or function
-    struct Expressions fir_child; // Almost all the expressions have a child
-    struct Expressions sec_child; // Some of the expressions have a second child
 
-} Expression;
-*/
 typedef struct Expressions
 {
     enum exprType
@@ -144,6 +126,12 @@ typedef struct Expressions
 
 } Expression;
 
+/*
+Each statement to be written on the out file. We will only print out the list
+of lineBlocks after the given file is checked for errors. Thus we only need to
+keep record of the minimum number of data, i.e. data that will be written on
+the out file.
+*/
 typedef struct LineBlocks
 {
     enum
